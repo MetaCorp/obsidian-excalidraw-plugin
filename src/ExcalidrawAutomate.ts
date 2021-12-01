@@ -260,9 +260,43 @@ export async function initExcalidrawAutomate(plugin: ExcalidrawPlugin):Promise<E
     },
     addToGroup(objectIds:[]):string {
       const id = nanoid();
+      let x: any
+      let y: any
+      let width: any 
+      let height: any 
       objectIds.forEach((objectId)=>{
         this.elementsDict[objectId]?.groupIds?.push(id);
+        const el = this.getElement(objectId)
+        if (x === undefined) {
+          x = el.x
+          y = el.y
+          width = el.width
+          height = el.height
+        }
+        else {
+          if (el.x < x) {
+            x = el.x
+            width += x - el.x
+          }
+          if (el.y < y) {
+            y = el.y
+            height += y - el.y
+          }
+          if (el.x + el.width > x + width) {
+            width += el.x + el.width - (x + width)
+          }
+          if (el.y + el.height > y + height) {
+            height += el.y + el.height - (y + height)
+          }
+        }
       });
+      this.elementsDict[id] = {
+        type: 'group',
+        x,
+        y,
+        width,
+        height
+      }
       return id;
     },
     async toClipboard(templatePath?:string) {
@@ -614,6 +648,7 @@ export async function initExcalidrawAutomate(plugin: ExcalidrawPlugin):Promise<E
       return id;
     },
     connectObjects(objectA: string, connectionA: ConnectionPoint, objectB: string, connectionB: ConnectionPoint, formatting?:{numberOfPoints?: number,startArrowHead?:string,endArrowHead?:string, padding?: number}):void {
+      console.log('connectObjects', { objectA, objectB })
       if(!(this.elementsDict[objectA] && this.elementsDict[objectB])) {
         return;
       }
@@ -622,6 +657,8 @@ export async function initExcalidrawAutomate(plugin: ExcalidrawPlugin):Promise<E
          ["line","arrow","freedraw"].includes(this.elementsDict[objectB].type)) {
         return;
       }
+
+      console.log('connecObjects 2')
 
       const padding = formatting?.padding ? formatting.padding : 10;
       const numberOfPoints = formatting?.numberOfPoints ? formatting.numberOfPoints : 0;
@@ -643,7 +680,8 @@ export async function initExcalidrawAutomate(plugin: ExcalidrawPlugin):Promise<E
       let points = [];
       for(let i=0;i<numAP;i++)
         points.push([aX+i*(bX-aX)/(numAP-1), aY+i*(bY-aY)/(numAP-1)]);
-      this.addArrow(points,{ 
+        console.log('connectObjects 3', { points})
+      return this.addArrow(points,{ 
         startArrowHead: formatting?.startArrowHead,
         endArrowHead: formatting?.endArrowHead,
         startObjectId: objectA, 
